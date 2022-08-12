@@ -1,0 +1,57 @@
+# Go binaries, test, and dependencies
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+*.json
+*.sum
+**vendor/
+env.yaml
+
+# MacOs
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+
+# JetBrains
+../.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/gradle.xml
+.idea/**/libraries
+.idea/**/mongoSettings.xml
+.idea/**/markdown-navigator.xml
+.idea/**/*.iml
+.idea/**/misc.xml
+.idea/**/modules.xml
+.idea/**/vcs.xml
+.idea/**/markdown-navigator/
+out/
+.idea_modules/
+
+# App specific
+*.log
+data_dictionary/env.yaml
+iam_management/env.yaml
