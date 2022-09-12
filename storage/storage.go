@@ -8,7 +8,6 @@ import (
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"io"
-	"io/ioutil"
 )
 
 type Storage struct {
@@ -94,16 +93,16 @@ func (s Storage) GetFileNames(bucketName string, prefix ...string) (shared.Strin
 	return fileNames, nil
 }
 
-func (s Storage) IsFileExists(bucketName, fileName string) bool {
+func (s Storage) IsFileExists(bucketName, fileName string) error {
 	if _, err := s.client.Bucket(bucketName).Object(fileName).Attrs(s.ctx); err != nil {
-		return false
+		return err
 	}
 
-	return true
+	return nil
 }
 
-// StreamFile streams a file.
-func (s Storage) StreamFile(bucketName, fileName string, ctx ...context.Context) (io.ReadCloser, error) {
+// StreamReadFile streams a file for reading.
+func (s Storage) StreamReadFile(bucketName, fileName string, ctx ...context.Context) (io.ReadCloser, error) {
 	var reader *storage.Reader
 	var err error
 	if len(ctx) > 0 {
@@ -119,21 +118,49 @@ func (s Storage) StreamFile(bucketName, fileName string, ctx ...context.Context)
 	return reader, nil
 }
 
-// DownloadFile downloads a file into byte slice.
+// DownloadFile download a file into byte slice.
 func (s Storage) DownloadFile(bucketName, fileName string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
 	defer cancel()
 
-	reader, err := s.StreamFile(bucketName, fileName, ctx)
+	reader, err := s.StreamReadFile(bucketName, fileName, ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = reader.Close() }()
 
-	data, err := ioutil.ReadAll(reader)
+	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf(errorWrapper, ErrDownloadFailed, err)
 	}
 
 	return data, nil
+}
+
+// StreamWriteFile streams a file for writing.
+func (s Storage) StreamWriteFile(bucketName, fileName string, ctx ...context.Context) io.WriteCloser {
+	var writer *storage.Writer
+	if len(ctx) > 0 {
+		writer = s.client.Bucket(bucketName).Object(fileName).NewWriter(ctx[0])
+	} else {
+		writer = s.client.Bucket(bucketName).Object(fileName).NewWriter(s.ctx)
+	}
+
+	return writer
+}
+
+// UploadFile upload a file to a bucket.
+func (s Storage) UploadFile(bucketName, fileName string, data []byte) error {
+	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
+	defer cancel()
+
+	writer := s.StreamWriteFile(bucketName, fileName, ctx)
+	defer func() { _ = writer.Close() }()
+
+	_, err := writer.Write(data)
+	if err != nil {
+		return fmt.Errorf(errorWrapper, ErrUploadFailed, err)
+	}
+
+	return nil
 }

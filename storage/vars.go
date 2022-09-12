@@ -21,4 +21,5 @@ var (
 	ErrGetFilenamesFailed      = errors.New("could not get Storage file names")
 	ErrStreamFailed            = errors.New("could not stream from Storage service")
 	ErrDownloadFailed          = errors.New("could not download from Storage service")
+	ErrUploadFailed            = errors.New("could not upload to Storage service")
 )
