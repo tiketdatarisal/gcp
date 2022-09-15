@@ -164,3 +164,18 @@ func (s Storage) UploadFile(bucketName, fileName string, data []byte) error {
 
 	return nil
 }
+
+// CopyFile copy a file from source to destination.
+func (s Storage) CopyFile(srcBucket, srcFileName, dstBucket, dstFilename string) error {
+	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
+	defer cancel()
+
+	srcObject := s.client.Bucket(srcBucket).Object(srcFileName)
+	dstObject := s.client.Bucket(dstBucket).Object(dstFilename)
+
+	if _, err := dstObject.CopierFrom(srcObject).Run(ctx); err != nil {
+		return fmt.Errorf(errorWrapper, ErrCopyFailed, err)
+	}
+
+	return nil
+}
