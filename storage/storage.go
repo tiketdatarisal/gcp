@@ -93,8 +93,17 @@ func (s Storage) GetFileNames(bucketName string, prefix ...string) (shared.Strin
 	return fileNames, nil
 }
 
+func (s Storage) FileMimeType(bucketName, fileName string) (string, error) {
+	attr, err := s.client.Bucket(bucketName).Object(fileName).Attrs(s.ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return attr.ContentType, nil
+}
+
 func (s Storage) IsFileExists(bucketName, fileName string) error {
-	if _, err := s.client.Bucket(bucketName).Object(fileName).Attrs(s.ctx); err != nil {
+	if _, err := s.FileMimeType(bucketName, fileName); err != nil {
 		return err
 	}
 
