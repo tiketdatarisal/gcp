@@ -23,7 +23,6 @@ func NewBigQuery(ctx context.Context, projectID string, credentialFile ...string
 	} else {
 		client, err = bigquery.NewClient(ctx, projectID)
 	}
-
 	if err != nil {
 		return nil, fmt.Errorf(errorWrapper, ErrInitBigQueryClientFailed, err)
 	}
@@ -39,6 +38,29 @@ func (q BigQuery) Close() {
 	if q.client != nil {
 		_ = q.client.Close()
 	}
+}
+
+// GetDatasetNames return a list of dataset names.
+func (q BigQuery) GetDatasetNames() (shared.StringSlice, error) {
+	ctx, cancel := context.WithTimeout(q.ctx, timeoutDuration)
+	defer cancel()
+
+	datasetIterator := q.client.Datasets(ctx)
+	var datasetNames shared.StringSlice
+	for {
+		dataset, err := datasetIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(errorWrapper, ErrGetDatasetNamesFailed, err)
+		}
+
+		datasetNames = append(datasetNames, dataset.DatasetID)
+	}
+
+	return datasetNames, nil
 }
 
 // GetTableNames return a list of table names.
