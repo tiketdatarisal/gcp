@@ -168,3 +168,19 @@ func (q BigQuery) InsertRows(datasetID, tableID string, items ...bigquery.ValueS
 
 	return nil
 }
+
+// GetColumnMetadata returns columns metadata.
+func (q BigQuery) GetColumnMetadata(datasetID, tableID string) (Columns, error) {
+	table := q.client.Dataset(datasetID).Table(tableID)
+	meta, err := table.Metadata(q.ctx)
+	if err != nil {
+		return nil, fmt.Errorf(errorWrapper, ErrGetColumnMetadataFailed, err)
+	}
+
+	var columns Columns
+	for _, col := range meta.Schema {
+		columns = append(columns, Column{ColumnName: col.Name, DataType: string(col.Type)})
+	}
+
+	return columns, nil
+}
