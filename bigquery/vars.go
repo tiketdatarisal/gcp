@@ -17,6 +17,8 @@ var (
 	Error error
 
 	ErrInitBigQueryClientFailed = errors.New("could not initialize BigQuery client")
+	ErrGetProjectNamesFailed    = errors.New("could not get BigQuery project names")
+	ErrGetDatasetNamesFailed    = errors.New("could not get BigQuery dataset names")
 	ErrGetTableNamesFailed      = errors.New("could not get BigQuery table names")
 	ErrCreateTableFailed        = errors.New("could not create BigQuery table")
 	ErrDeleteTableFailed        = errors.New("could not delete BigQuery table")

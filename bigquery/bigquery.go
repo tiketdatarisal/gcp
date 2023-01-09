@@ -7,11 +7,14 @@ import (
 	"github.com/tiketdatarisal/gcp/shared"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+
+	bq "google.golang.org/api/bigquery/v2"
 )
 
 type BigQuery struct {
-	ctx    context.Context
-	client *bigquery.Client
+	ctx     context.Context
+	client  *bigquery.Client
+	service *bq.Service
 }
 
 // NewBigQuery return a new BigQuery client.
@@ -23,14 +26,24 @@ func NewBigQuery(ctx context.Context, projectID string, credentialFile ...string
 	} else {
 		client, err = bigquery.NewClient(ctx, projectID)
 	}
+	if err != nil {
+		return nil, fmt.Errorf(errorWrapper, ErrInitBigQueryClientFailed, err)
+	}
 
+	var service *bq.Service
+	if len(credentialFile) > 0 {
+		service, err = bq.NewService(ctx, option.WithCredentialsFile(credentialFile[0]))
+	} else {
+		service, err = bq.NewService(ctx)
+	}
 	if err != nil {
 		return nil, fmt.Errorf(errorWrapper, ErrInitBigQueryClientFailed, err)
 	}
 
 	return &BigQuery{
-		ctx:    ctx,
-		client: client,
+		ctx:     ctx,
+		client:  client,
+		service: service,
 	}, nil
 }
 
@@ -39,6 +52,53 @@ func (q BigQuery) Close() {
 	if q.client != nil {
 		_ = q.client.Close()
 	}
+}
+
+// GetProjectNames return a list of project names.
+func (q BigQuery) GetProjectNames() (shared.StringSlice, error) {
+	var projectNames shared.StringSlice
+
+	t := ""
+	for {
+		res, err := q.service.Projects.List().PageToken(t).Do()
+		if err != nil {
+			return nil, fmt.Errorf(errorWrapper, ErrGetProjectNamesFailed, err)
+		}
+
+		for _, p := range res.Projects {
+			projectNames = append(projectNames, p.Id)
+		}
+
+		t = res.NextPageToken
+		if t == "" {
+			break
+		}
+	}
+
+	return projectNames, nil
+}
+
+// GetDatasetNames return a list of dataset names.
+func (q BigQuery) GetDatasetNames() (shared.StringSlice, error) {
+	ctx, cancel := context.WithTimeout(q.ctx, timeoutDuration)
+	defer cancel()
+
+	datasetIterator := q.client.Datasets(ctx)
+	var datasetNames shared.StringSlice
+	for {
+		dataset, err := datasetIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(errorWrapper, ErrGetDatasetNamesFailed, err)
+		}
+
+		datasetNames = append(datasetNames, dataset.DatasetID)
+	}
+
+	return datasetNames, nil
 }
 
 // GetTableNames return a list of table names.
