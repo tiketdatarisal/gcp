@@ -7,6 +7,7 @@ import (
 	"github.com/tiketdatarisal/gcp/shared"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
+	"time"
 
 	bq "google.golang.org/api/bigquery/v2"
 )
@@ -183,4 +184,32 @@ func (q BigQuery) GetColumnMetadata(datasetID, tableID string) (Columns, error) 
 	}
 
 	return columns, nil
+}
+
+// DryRunQuery return number of bytes processed when succeeded.
+func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, error) {
+	if query == "" {
+		return -1, nil
+	}
+
+	ctx := q.ctx
+	var cancel context.CancelFunc
+	if len(timeout) > 0 && timeout[0] > 0 {
+		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
+		defer cancel()
+	}
+
+	task := q.client.Query(query)
+	task.DryRun = true
+
+	job, err := task.Run(ctx)
+	if err != nil {
+		return -1, fmt.Errorf(errorWrapper, ErrDryRunQueryFailed, err)
+	}
+
+	if err = job.LastStatus().Err(); err != nil {
+		return -1, fmt.Errorf(errorWrapper, ErrDryRunQueryFailed, err)
+	}
+
+	return job.LastStatus().Statistics.TotalBytesProcessed, nil
 }
