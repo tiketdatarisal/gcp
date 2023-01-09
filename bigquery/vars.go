@@ -26,4 +26,5 @@ var (
 	ErrGetTableSchemaFailed     = errors.New("could not get BigQuery table schema")
 	ErrInsertRowFailed          = errors.New("could not insert new row to BigQuery table")
 	ErrDryRunQueryFailed        = errors.New("could not dry run query")
+	ErrRunQueryFailed           = errors.New("could not run query")
 )

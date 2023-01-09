@@ -213,3 +213,41 @@ func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, er
 
 	return job.LastStatus().Statistics.TotalBytesProcessed, nil
 }
+
+// RunQuery return query result when succeeded.
+func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) {
+	if query == "" {
+		return -1, nil
+	}
+
+	ctx := q.ctx
+	var cancel context.CancelFunc
+	if len(timeout) > 0 && timeout[0] > 0 {
+		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
+		defer cancel()
+	}
+
+	task := q.client.Query(query)
+	queryIterator, err := task.Read(ctx)
+	if err != nil {
+		return nil, fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
+	}
+
+	type row = map[string]bigquery.Value
+	var result []row
+	for {
+		var r row
+		err = queryIterator.Next(&r)
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
+		}
+
+		result = append(result, r)
+	}
+
+	return result, nil
+}
