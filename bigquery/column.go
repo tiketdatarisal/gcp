@@ -1,6 +1,9 @@
 package bigquery
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 type Column struct {
 	ColumnName string `json:"columnName,omitempty" bigquery:"column_name"`
@@ -9,13 +12,17 @@ type Column struct {
 
 type Columns []Column
 
-func (c *Columns) Sort() {
-	count := len(*c)
-	for i := 0; i < count-1; i++ {
-		for j := 1; j < count; j++ {
-			if strings.Compare((*c)[i].ColumnName, (*c)[j].ColumnName) > 0 {
-				(*c)[i], (*c)[j] = (*c)[j], (*c)[i]
-			}
-		}
+func (c Columns) Len() int { return len(c) }
+
+func (c Columns) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
+
+func (c Columns) Less(i, j int) bool { return c[i].ColumnName < c[j].ColumnName }
+
+func (c Columns) String() string {
+	var cols []string
+	for _, col := range c {
+		cols = append(cols, fmt.Sprintf("%s(%s)", col.ColumnName, col.DataType))
 	}
+
+	return strings.Join(cols, ", ")
 }
