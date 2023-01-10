@@ -5,7 +5,6 @@ go 1.18
 require (
 	cloud.google.com/go/bigquery v1.44.0
 	cloud.google.com/go/bigtable v1.16.0
-	cloud.google.com/go/resourcemanager v1.4.0
 	cloud.google.com/go/storage v1.28.1
 	google.golang.org/api v0.106.0
 )
