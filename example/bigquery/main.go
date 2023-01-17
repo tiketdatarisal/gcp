@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/tiketdatarisal/gcp/bigquery"
 	"sort"
+	"time"
 )
 
 func main() {
@@ -45,5 +46,9 @@ func main() {
 		panic(err)
 	} else {
 		fmt.Println("Query Result:", result)
+	}
+
+	if err := client.ExportToCsv("SELECT * FROM `tiket-0818.galaxy_dwh.verified_active_user` LIMIT 10", "gs://bucket_name/object_name.csv", 3, 2*time.Second); err != nil {
+		panic(err)
 	}
 }

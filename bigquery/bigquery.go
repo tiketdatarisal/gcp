@@ -326,7 +326,7 @@ func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Durati
 			}
 
 			return nil
-		}
+		}()
 
 		if exportErr != nil && retry > 0 {
 			time.Sleep(delay)
