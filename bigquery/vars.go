@@ -9,6 +9,7 @@ import (
 const (
 	timeoutDuration = 30 * time.Second
 	errorWrapper    = "%w: %v"
+	commaDelimiter  = ","
 )
 
 var (
@@ -21,6 +22,7 @@ var (
 	ErrGetDatasetNamesFailed    = errors.New("could not get BigQuery dataset names")
 	ErrGetTableNamesFailed      = errors.New("could not get BigQuery table names")
 	ErrGetColumnMetadataFailed  = errors.New("could not get BigQuery column metadata")
+	ErrTemporaryTableNotFound   = errors.New("could not found temporary table")
 	ErrCreateTableFailed        = errors.New("could not create BigQuery table")
 	ErrDeleteTableFailed        = errors.New("could not delete BigQuery table")
 	ErrGetTableSchemaFailed     = errors.New("could not get BigQuery table schema")

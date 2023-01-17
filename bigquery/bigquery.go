@@ -196,7 +196,11 @@ func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, er
 	var cancel context.CancelFunc
 	if len(timeout) > 0 && timeout[0] > 0 {
 		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
-		defer cancel()
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
 	}
 
 	task := q.client.Query(query)
@@ -224,7 +228,11 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 	var cancel context.CancelFunc
 	if len(timeout) > 0 && timeout[0] > 0 {
 		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
-		defer cancel()
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
 	}
 
 	task := q.client.Query(query)
@@ -250,4 +258,83 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 	}
 
 	return result, nil
+}
+
+func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Duration, timeout ...time.Duration) error {
+	if query == "" {
+		return nil
+	}
+
+	ctx := q.ctx
+	var cancel context.CancelFunc
+	if len(timeout) > 0 && timeout[0] > 0 {
+		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
+	}
+
+	task := q.client.Query(query)
+	result, err := task.Run(ctx)
+	if err != nil {
+		return err
+	}
+
+	status, err := result.Wait(ctx)
+	if err != nil {
+		return err
+	} else if err := status.Err(); err != nil {
+		return err
+	}
+
+	config, err := result.Config()
+	if err != nil {
+		return err
+	}
+
+	var tmpTable *bigquery.Table
+	if queryConfig, ok := config.(*bigquery.QueryConfig); ok {
+		tmpTable = queryConfig.Dst
+	}
+
+	if tmpTable == nil {
+		return ErrTemporaryTableNotFound
+	}
+
+	ref := bigquery.NewGCSReference(gcsURI)
+	ref.DestinationFormat = bigquery.CSV
+	ref.FieldDelimiter = commaDelimiter
+
+	extractor := tmpTable.ExtractorTo(ref)
+	extractor.DisableHeader = false
+
+	var exportErr error
+	for {
+		exportErr := func() error {
+			result, err := extractor.Run(ctx)
+			if err != nil {
+				return err
+			}
+
+			status, err := result.Wait(ctx)
+			if err != nil {
+				return err
+			} else if err := status.Err(); err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		if exportErr != nil && retry > 0 {
+			time.Sleep(delay)
+			retry--
+		} else {
+			break
+		}
+	}
+
+	return exportErr
 }
