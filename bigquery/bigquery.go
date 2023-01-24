@@ -260,6 +260,46 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 	return result, nil
 }
 
+// RunQueryFunc query and process the query result in func.
+func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Value), timeout ...time.Duration) error {
+	if query == "" || f == nil {
+		return nil
+	}
+
+	ctx := q.ctx
+	var cancel context.CancelFunc
+	if len(timeout) > 0 && timeout[0] > 0 {
+		ctx, cancel = context.WithTimeout(q.ctx, timeout[0])
+		defer func() {
+			if cancel != nil {
+				cancel()
+			}
+		}()
+	}
+
+	task := q.client.Query(query)
+	queryIterator, err := task.Read(ctx)
+	if err != nil {
+		return fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
+	}
+
+	for {
+		var r map[string]bigquery.Value
+		err = queryIterator.Next(&r)
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
+		}
+
+		f(r)
+	}
+
+	return nil
+}
+
 func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Duration, timeout ...time.Duration) error {
 	if query == "" {
 		return nil
