@@ -261,7 +261,7 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 }
 
 // RunQueryFunc query and process the query result in func.
-func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Value), timeout ...time.Duration) error {
+func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Value) error, timeout ...time.Duration) error {
 	if query == "" || f == nil {
 		return nil
 	}
@@ -284,6 +284,7 @@ func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Valu
 	}
 
 	for {
+		// Get next row, when possible
 		var r map[string]bigquery.Value
 		err = queryIterator.Next(&r)
 		if err == iterator.Done {
@@ -294,7 +295,15 @@ func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Valu
 			return fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
 		}
 
-		f(r)
+		// Break the loop when the function return iterator.Done
+		err = f(r)
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
+		}
 	}
 
 	return nil
