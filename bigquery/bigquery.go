@@ -187,7 +187,7 @@ func (q BigQuery) GetColumnMetadata(datasetID, tableID string) (Columns, error) 
 }
 
 // DryRunQuery return number of bytes processed when succeeded.
-func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, error) {
+func (q BigQuery) DryRunQuery(query string, labels map[string]string, timeout ...time.Duration) (int64, error) {
 	if query == "" {
 		return -1, nil
 	}
@@ -205,6 +205,9 @@ func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, er
 
 	task := q.client.Query(query)
 	task.DryRun = true
+	if labels != nil {
+		task.Labels = labels
+	}
 
 	job, err := task.Run(ctx)
 	if err != nil {
@@ -219,7 +222,7 @@ func (q BigQuery) DryRunQuery(query string, timeout ...time.Duration) (int64, er
 }
 
 // RunQuery return query result when succeeded.
-func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) {
+func (q BigQuery) RunQuery(query string, labels map[string]string, timeout ...time.Duration) (any, error) {
 	if query == "" {
 		return -1, nil
 	}
@@ -236,6 +239,10 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 	}
 
 	task := q.client.Query(query)
+	if labels != nil {
+		task.Labels = labels
+	}
+
 	queryIterator, err := task.Read(ctx)
 	if err != nil {
 		return nil, fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
@@ -261,7 +268,7 @@ func (q BigQuery) RunQuery(query string, timeout ...time.Duration) (any, error) 
 }
 
 // RunQueryFunc query and process the query result in func.
-func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Value) error, timeout ...time.Duration) error {
+func (q BigQuery) RunQueryFunc(query string, labels map[string]string, f func(row map[string]bigquery.Value) error, timeout ...time.Duration) error {
 	if query == "" || f == nil {
 		return nil
 	}
@@ -278,6 +285,10 @@ func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Valu
 	}
 
 	task := q.client.Query(query)
+	if labels != nil {
+		task.Labels = labels
+	}
+
 	queryIterator, err := task.Read(ctx)
 	if err != nil {
 		return fmt.Errorf(errorWrapper, ErrRunQueryFailed, err)
@@ -309,7 +320,7 @@ func (q BigQuery) RunQueryFunc(query string, f func(row map[string]bigquery.Valu
 	return nil
 }
 
-func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Duration, timeout ...time.Duration) error {
+func (q BigQuery) ExportToCsv(query string, labels map[string]string, gcsURI string, retry int, delay time.Duration, timeout ...time.Duration) error {
 	if query == "" {
 		return nil
 	}
@@ -326,6 +337,10 @@ func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Durati
 	}
 
 	task := q.client.Query(query)
+	if labels != nil {
+		task.Labels = labels
+	}
+
 	result, err := task.Run(ctx)
 	if err != nil {
 		return err
@@ -358,6 +373,10 @@ func (q BigQuery) ExportToCsv(query, gcsURI string, retry int, delay time.Durati
 
 	extractor := tmpTable.ExtractorTo(ref)
 	extractor.DisableHeader = false
+	extractor.Labels = labels
+	if labels != nil {
+		task.Labels = labels
+	}
 
 	var exportErr error
 	for {
