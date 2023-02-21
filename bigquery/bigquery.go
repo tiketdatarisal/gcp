@@ -320,6 +320,7 @@ func (q BigQuery) RunQueryFunc(query string, labels map[string]string, f func(ro
 	return nil
 }
 
+// ExportToCsv query and export result to csv.
 func (q BigQuery) ExportToCsv(query string, labels map[string]string, gcsURI string, retry int, delay time.Duration, timeout ...time.Duration) error {
 	if query == "" {
 		return nil
@@ -373,9 +374,8 @@ func (q BigQuery) ExportToCsv(query string, labels map[string]string, gcsURI str
 
 	extractor := tmpTable.ExtractorTo(ref)
 	extractor.DisableHeader = false
-	extractor.Labels = labels
 	if labels != nil {
-		task.Labels = labels
+		extractor.Labels = labels
 	}
 
 	var exportErr error
