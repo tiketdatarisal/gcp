@@ -66,13 +66,39 @@ func (s Storage) GetBucketNames(projectID string) (shared.StringSlice, error) {
 }
 
 // GetFileNames return list of file names.
-func (s Storage) GetFileNames(bucketName string, prefix ...string) (shared.StringSlice, error) {
+func (s Storage) GetFileNames(bucketName string) (shared.StringSlice, error) {
+	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
+	defer cancel()
+
+	fileIterator := s.client.Bucket(bucketName).Objects(ctx, nil)
+	var fileNames shared.StringSlice
+	for {
+		file, err := fileIterator.Next()
+		if err == iterator.Done {
+			break
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(errorWrapper, ErrGetFilenamesFailed, err)
+		}
+
+		fileNames = append(fileNames, file.Name)
+	}
+
+	return fileNames, nil
+}
+
+// GetFileNamesWithPrefix return list of file names with prefix.
+func (s Storage) GetFileNamesWithPrefix(bucketName, prefix string, restrictResult bool) (shared.StringSlice, error) {
 	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
 	defer cancel()
 
 	var query *storage.Query = nil
-	if len(prefix) > 0 {
-		query = &storage.Query{Prefix: prefix[0]}
+	if prefix != "" {
+		query = &storage.Query{Prefix: prefix}
+		if restrictResult {
+			query.Delimiter = `/`
+		}
 	}
 
 	fileIterator := s.client.Bucket(bucketName).Objects(ctx, query)
@@ -93,6 +119,7 @@ func (s Storage) GetFileNames(bucketName string, prefix ...string) (shared.Strin
 	return fileNames, nil
 }
 
+// FileMimeType return file mime type.
 func (s Storage) FileMimeType(bucketName, fileName string) (string, error) {
 	attr, err := s.client.Bucket(bucketName).Object(fileName).Attrs(s.ctx)
 	if err != nil {
@@ -102,6 +129,7 @@ func (s Storage) FileMimeType(bucketName, fileName string) (string, error) {
 	return attr.ContentType, nil
 }
 
+// IsFileExists return nil when file exists.
 func (s Storage) IsFileExists(bucketName, fileName string) error {
 	if _, err := s.FileMimeType(bucketName, fileName); err != nil {
 		return err
