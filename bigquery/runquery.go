@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+// RunQueryToCSV query and store the result to CSV file.
+// Use wildcard (*) when you want to save to multiple files.
+// For example: gcsURI = "gs://bucket/sample-*.csv" will save to "sample-000000000000.csv",
+// "sample-000000000001.csv", etc.
 func (q BigQuery) RunQueryToCSV(query, gcsURI string, cfg ...config.RunQueryConfig) error {
 	if query == "" || gcsURI == "" {
 		return nil
@@ -105,6 +109,10 @@ func (q BigQuery) RunQueryToCSV(query, gcsURI string, cfg ...config.RunQueryConf
 	return extractErr
 }
 
+// RunQueryToJSON query and store the result to JSON file.
+// Use wildcard (*) when you want to save to multiple files.
+// For example: gcsURI = "gs://bucket/sample-*.json" will save to "sample-000000000000.json",
+// "sample-000000000001.json", etc.
 func (q BigQuery) RunQueryToJSON(query, gcsURI string, cfg ...config.RunQueryConfig) error {
 	if query == "" || gcsURI == "" {
 		return nil
