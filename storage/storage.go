@@ -8,6 +8,8 @@ import (
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 	"io"
+	"net/url"
+	"path"
 )
 
 type Storage struct {
@@ -215,4 +217,29 @@ func (s Storage) CopyFile(srcBucket, srcFileName, dstBucket, dstFilename string)
 	}
 
 	return nil
+}
+
+// CreatePublicURLs returns public urls from specific bucket and filenames.
+func (s Storage) CreatePublicURLs(bucket string, filenames ...string) ([]string, error) {
+	if bucket == "" || len(filenames) == 0 {
+		return nil, nil
+	}
+
+	const prefix = "https://storage.googleapis.com"
+	ctx, cancel := context.WithTimeout(s.ctx, timeoutDuration)
+	defer cancel()
+
+	var urls []string
+	for _, filename := range filenames {
+		acl := s.client.Bucket(bucket).Object(filename).ACL()
+		if err := acl.Set(ctx, storage.AllUsers, storage.RoleReader); err != nil {
+			return nil, err
+		}
+
+		u, _ := url.Parse(prefix)
+		u.Path = path.Join(u.Path, bucket, filename)
+		urls = append(urls, u.String())
+	}
+
+	return urls, nil
 }
